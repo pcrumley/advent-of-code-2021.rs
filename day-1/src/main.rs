@@ -6,41 +6,27 @@ fn main() {
     // work to do to make deserialization better
     let depths_test = parse_csv(include_bytes!("depths_test.csv").as_ref());
     let depths = parse_csv(include_bytes!("depths.csv").as_ref());
-    assert_eq!(7, num_increasing(depths_test.iter()));
-    println!("{}", num_increasing(depths.iter()));
+    assert_eq!(7, num_increasing(depths_test.iter().cloned()));
+    println!("{}", num_increasing(depths.iter().cloned()));
 
-    // It really bothers me i have to do the collect and reallocate here. I think it should be
-    // avoidable
     assert_eq!(
         5,
-        num_increasing(
-            depths_test
-                .windows(3)
-                .map(|o| o.iter().sum::<u32>())
-                .collect::<Vec<_>>()
-                .iter()
-        )
+        num_increasing(depths_test.windows(3).map(|o| o.iter().sum::<u32>()))
     );
 
     println!(
         "{}",
-        num_increasing(
-            depths
-                .windows(3)
-                .map(|o| o.iter().sum::<u32>())
-                .collect::<Vec<_>>()
-                .iter()
-        )
+        num_increasing(depths.windows(3).map(|o| o.iter().sum::<u32>()))
     );
 }
 
-fn num_increasing<'a, I>(depths: I) -> u32
+fn num_increasing<I>(depths: I) -> u32
 where
-    I: Iterator<Item = &'a u32>,
+    I: Iterator<Item = u32>,
 {
     depths
-        .fold((0, &u32::MAX), |(sum, prev), cur| {
-            if cur.cmp(prev).is_gt() {
+        .fold((0, u32::MAX), |(sum, prev), cur| {
+            if cur.cmp(&prev).is_gt() {
                 (sum + 1, cur)
             } else {
                 (sum, cur)

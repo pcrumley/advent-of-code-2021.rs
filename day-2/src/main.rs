@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use std::convert::TryFrom;
-use std::ops::Add;
 
 #[derive(Debug)]
 struct Position {
@@ -43,15 +42,15 @@ fn parse_and_sum(data: &str) -> Result<Position> {
             command.map(|c| match c {
                 Command::Forward(x) => Position {
                     x: acc.x + x,
-                    depth: acc.depth,
+                    ..acc
                 },
                 Command::Up(y) => Position {
-                    x: acc.x,
                     depth: acc.depth - y,
+                    ..acc
                 },
                 Command::Down(y) => Position {
-                    x: acc.x,
                     depth: acc.depth + y,
+                    ..acc
                 },
             })
         })
@@ -69,17 +68,15 @@ fn parse_with_aim(data: &str) -> Result<PositionWithAim> {
                 Command::Forward(x) => PositionWithAim {
                     x: acc.x + x,
                     depth: acc.depth + acc.aim * x,
-                    aim: acc.aim,
+                    ..acc
                 },
                 Command::Up(y) => PositionWithAim {
-                    x: acc.x,
-                    depth: acc.depth,
                     aim: acc.aim - y,
+                    ..acc
                 },
                 Command::Down(y) => PositionWithAim {
-                    x: acc.x,
-                    depth: acc.depth,
                     aim: acc.aim + y,
+                    ..acc
                 },
             })
         },

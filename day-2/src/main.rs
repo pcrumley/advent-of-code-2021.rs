@@ -8,16 +8,22 @@ struct Position {
     depth: i32,
 }
 
-impl TryFrom<&str> for Position {
+enum Command {
+    Forward(i32),
+    Down(i32),
+    Up(i32),
+}
+
+impl TryFrom<&str> for Command {
     type Error = anyhow::Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let split: Vec<_> = value.split(" ").collect();
         let split_tup: (&str, i32) = (split[0], split[1].parse()?);
         match split_tup {
-            ("forward", x) => Ok(Position { x, depth: 0 }),
-            ("down", y) => Ok(Position { x: 0, depth: y }),
-            ("up", y) => Ok(Position { x: 0, depth: -y }),
+            ("forward", x) => Ok(Command::Forward(x)),
+            ("down", y) => Ok(Command::Down(y)),
+            ("up", y) => Ok(Command::Up(y)),
             _ => Err(anyhow!("invalid input")),
         }
     }
@@ -30,74 +36,52 @@ struct PositionWithAim {
     aim: i32,
 }
 
-impl TryFrom<&str> for PositionWithAim {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let split: Vec<_> = value.split(" ").collect();
-        let split_tup: (&str, i32) = (split[0], split[1].parse()?);
-        match split_tup {
-            ("forward", x) => Ok(Self {
-                x,
-                depth: 0,
-                aim: 0,
-            }),
-            ("down", y) => Ok(Self {
-                x: 0,
-                depth: 0,
-                aim: y,
-            }),
-            ("up", y) => Ok(Self {
-                x: 0,
-                depth: 0,
-                aim: -y,
-            }),
-            _ => Err(anyhow!("invalid input")),
-        }
-    }
-}
-
-impl Add for Position {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            depth: self.depth + other.depth,
-        }
-    }
-}
-
 fn parse_and_sum(data: &str) -> Result<Position> {
     data.lines()
-        .map(Position::try_from)
-        .try_fold(
-            Position { x: 0, depth: 0 },
-            |acc, position| match position {
-                Ok(p) => Ok(acc + p),
-                Err(e) => Err(e),
-            },
-        )
+        .map(Command::try_from)
+        .try_fold(Position { x: 0, depth: 0 }, |acc, command| {
+            command.map(|c| match c {
+                Command::Forward(x) => Position {
+                    x: acc.x + x,
+                    depth: acc.depth,
+                },
+                Command::Up(y) => Position {
+                    x: acc.x,
+                    depth: acc.depth - y,
+                },
+                Command::Down(y) => Position {
+                    x: acc.x,
+                    depth: acc.depth + y,
+                },
+            })
+        })
 }
 
 fn parse_with_aim(data: &str) -> Result<PositionWithAim> {
-    data.lines().map(PositionWithAim::try_from).try_fold(
+    data.lines().map(Command::try_from).try_fold(
         PositionWithAim {
             x: 0,
             depth: 0,
             aim: 0,
         },
-        |acc, position| match position {
-            Ok(p) => {
-                let ans = PositionWithAim {
-                    x: acc.x + p.x,
-                    depth: acc.aim * p.x + acc.depth,
-                    aim: acc.aim + p.aim,
-                };
-                // println!("{:#?}", ans);
-                Ok(ans)
-            }
-            Err(e) => Err(e),
+        |acc, command| {
+            command.map(|c| match c {
+                Command::Forward(x) => PositionWithAim {
+                    x: acc.x + x,
+                    depth: acc.depth + acc.aim * x,
+                    aim: acc.aim,
+                },
+                Command::Up(y) => PositionWithAim {
+                    x: acc.x,
+                    depth: acc.depth,
+                    aim: acc.aim - y,
+                },
+                Command::Down(y) => PositionWithAim {
+                    x: acc.x,
+                    depth: acc.depth,
+                    aim: acc.aim + y,
+                },
+            })
         },
     )
 }

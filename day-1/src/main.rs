@@ -1,11 +1,11 @@
-use csv::ReaderBuilder;
+use anyhow::Result;
 
-fn main() {
+fn main() -> Result<()> {
     // the first puzzle is you are given an array and you are supposed to count how
     // many times is n+1 deeper than nth element of the array.
     // work to do to make deserialization better
-    let depths_test = parse_csv(include_bytes!("depths_test.csv").as_ref());
-    let depths = parse_csv(include_bytes!("depths.csv").as_ref());
+    let depths_test = parse_file(include_str!("depths_test.csv"))?;
+    let depths = parse_file(include_str!("depths.csv"))?;
     assert_eq!(7, num_increasing(depths_test.iter().cloned()));
     println!("{}", num_increasing(depths.iter().cloned()));
 
@@ -18,6 +18,7 @@ fn main() {
         "{}",
         num_increasing(depths.windows(3).map(|o| o.iter().sum::<u32>()))
     );
+    Ok(())
 }
 
 fn num_increasing<I>(depths: I) -> u32
@@ -35,14 +36,8 @@ where
         .0
 }
 
-fn parse_csv(data: &[u8]) -> Vec<u32> {
-    let mut rdr = ReaderBuilder::new().has_headers(false).from_reader(data);
-    rdr.records()
-        .map(|record| {
-            record
-                .ok()
-                .and_then(|o| o[0].to_string().parse::<u32>().ok())
-                .unwrap()
-        })
+fn parse_file(data: &str) -> Result<Vec<u32>> {
+    data.lines()
+        .map(|o| o.parse::<u32>().map_err(anyhow::Error::from))
         .collect()
 }

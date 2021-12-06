@@ -19,13 +19,8 @@ impl Ocean {
     }
 
     pub fn step_time(&mut self) {
-        let mut next_fish = [0; 9];
-        for i in 1..self.fish.len() {
-            next_fish[i - 1] += self.fish[i];
-        }
-        next_fish[8] += self.fish[0];
-        next_fish[6] += self.fish[0];
-        self.fish = next_fish;
+        self.fish.rotate_left(1);
+        self.fish[6] += self.fish[8];
     }
 }
 fn main() {

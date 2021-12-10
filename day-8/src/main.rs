@@ -101,7 +101,7 @@ impl FromStr for DiaryEntry {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let entry: Vec<&str> = s.trim().split('|').map(|o| o.trim()).collect();
+        let entry: Vec<&str> = s.trim().split(" | ").collect();
 
         let signal = entry[0]
             .split(' ')

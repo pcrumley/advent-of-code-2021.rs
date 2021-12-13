@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 //use std::rc::Rc;
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cave {
     name: String,
     is_big: bool,
@@ -20,51 +20,60 @@ impl Cave {
         }
     }
 }
-
+#[derive(Debug, Clone)]
 pub struct CaveSystem {
     caves: HashMap<String, Cave>,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum Part {
-    A,
-    B,
-}
 impl CaveSystem {
     pub fn new() -> Self {
         CaveSystem {
             caves: HashMap::new(),
         }
     }
-    pub fn count_routes(&self, part: Part) -> u32 {
+    pub fn count_routes(&self, is_part_a: bool) -> u32 {
         // recursor function that returns 1 if it reaches
         // end 0 otherwise
-        fn inner(system: &CaveSystem, cur: &Cave, mut visited: HashSet<String>, part: Part) -> u32 {
+        fn inner(
+            system: &CaveSystem,
+            cur: &Cave,
+            visited: HashMap<String, u8>,
+            is_part_a: bool,
+        ) -> u32 {
             if cur.name == "end" {
                 return 1;
             }
-            let mut to_visit = cur
-                .neighbors
-                .iter()
-                .filter(|s| !visited.contains(*s))
-                .collect::<Vec<_>>();
-            if to_visit.is_empty() {
-                0
-            } else {
-                if !cur.is_big {
-                    visited.insert(cur.name.to_owned());
-                }
-                let mut total = 0;
-                while let Some(x) = to_visit.pop() {
-                    let next = system.caves.get(x).unwrap();
-                    total += inner(system, &next, visited.clone(), part);
-                }
-                total
+            let mut visited = visited.clone();
+            let times = visited.entry(cur.name.clone()).or_insert(0);
+            if !cur.is_big {
+                *times += 1;
             }
+            let mut count = 0;
+
+            for n in cur.neighbors.iter() {
+                let next = system.caves.get(n).unwrap();
+                if next.name == "start".to_string() {
+                    continue;
+                }
+                if next.is_big {
+                    count += inner(system, &next, visited.clone(), is_part_a)
+                } else if !visited.contains_key(&next.name) {
+                    count += inner(system, &next, visited.clone(), is_part_a);
+                } else if !is_part_a {
+                    if *visited.get(&cur.name).unwrap() < 2
+                        && !visited.iter().map(|(_key, val)| val).any(|&x| x >= 2)
+                    {
+                        count += inner(system, &next, visited.clone(), is_part_a);
+                    }
+                }
+            }
+            count
         }
         let cur = self.caves.get("start").unwrap();
-        let have_visited = HashSet::new();
-        inner(self, cur, have_visited, part)
+
+        let visited = HashMap::new();
+        // visited.insert("start".into(), 1);
+        inner(self, cur, visited, is_part_a)
     }
 }
 
@@ -97,8 +106,9 @@ impl FromStr for CaveSystem {
 fn main() {
     let cave_system = CaveSystem::from_str(include_str!("../data/main.txt")).unwrap();
     println!(
-        "Number of routes in this cave system: {}",
-        cave_system.count_routes(Part::A)
+        "Number of routes in this cave system: Part 1: {}, Part 2: {}",
+        cave_system.count_routes(true),
+        cave_system.count_routes(false),
     );
 }
 
@@ -109,10 +119,13 @@ mod test {
     #[test]
     fn test() {
         let cave_system = CaveSystem::from_str(include_str!("../data/test_1.txt")).unwrap();
-        assert_eq!(cave_system.count_routes(Part::A), 10);
+        assert_eq!(cave_system.count_routes(true), 10);
+        assert_eq!(cave_system.count_routes(false), 36);
         let cave_system = CaveSystem::from_str(include_str!("../data/test_2.txt")).unwrap();
-        assert_eq!(cave_system.count_routes(Part::A), 19);
+        assert_eq!(cave_system.count_routes(true), 19);
+        assert_eq!(cave_system.count_routes(false), 103);
         let cave_system = CaveSystem::from_str(include_str!("../data/test_3.txt")).unwrap();
-        assert_eq!(cave_system.count_routes(Part::A), 226);
+        assert_eq!(cave_system.count_routes(true), 226);
+        assert_eq!(cave_system.count_routes(false), 3509);
     }
 }
